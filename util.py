@@ -1,7 +1,6 @@
 import os
 import cv2
 import numpy as np
-from os.path import join, split
 import random
 
 
@@ -16,7 +15,7 @@ def convert(size, box):
     w = w * dw
     y = y * dh
     h = h * dh
-    return (x, y, w, h)
+    return x, y, w, h
 
 
 def issmallobject(bbox, thresh):
@@ -122,68 +121,22 @@ def flip_bbox(roi):
 def sampling_new_bbox_center_point(img_shape, bbox):
     #### sampling space ####
     height, width, nc = img_shape
-    cl, x_left, y_left, x_right, y_right = bbox
-    bbox_w, bbox_h = x_right - x_left, y_right - y_left
-    ### left top ###
-    if x_left <= width / 2:
-        search_x_left, search_y_left, search_x_right, search_y_right = width * 0.6, height / 2, width * 0.75, height * 0.75
-    if x_left > width / 2:
-        search_x_left, search_y_left, search_x_right, search_y_right = width * 0.25, height / 2, width * 0.5, height * 0.75
-    return [search_x_left, search_y_left, search_x_right, search_y_right]
-
-
-def random_add_patches(bbox, rescale_boxes, shape, paste_number, iou_thresh):
-    temp = []
-    for rescale_bbox in rescale_boxes:
-        temp.append(rescale_bbox)
-    cl, x_left, y_left, x_right, y_right = bbox
-    bbox_w, bbox_h = x_right - x_left, y_right - y_left
-    center_search_space = sampling_new_bbox_center_point(shape, bbox)
-    success_num = 0
-    new_bboxes = []
-    while success_num < paste_number:
-        new_bbox_x_center, new_bbox_y_center = norm_sampling(center_search_space)
-        print(norm_sampling(center_search_space))
-        new_bbox_x_left, new_bbox_y_left, new_bbox_x_right, new_bbox_y_right = new_bbox_x_center - 0.5 * bbox_w, \
-                                                                               new_bbox_y_center - 0.5 * bbox_h, \
-                                                                               new_bbox_x_center + 0.5 * bbox_w, \
-                                                                               new_bbox_y_center + 0.5 * bbox_h
-        new_bbox = [cl, int(new_bbox_x_left), int(new_bbox_y_left), int(new_bbox_x_right), int(new_bbox_y_right)]
-        ious = [bbox_iou(new_bbox, bbox_t) for bbox_t in rescale_boxes]
-        if max(ious) <= iou_thresh:
-            # for bbox_t in rescale_boxes:
-            # iou =  bbox_iou(new_bbox[1:],bbox_t[1:])
-            # if(iou <= iou_thresh):
-            success_num += 1
-            temp.append(new_bbox)
-            new_bboxes.append(new_bbox)
-        else:
-            continue
-    return new_bboxes
-
-
-def sampling_new_bbox_center_point2(img_shape, bbox):
-    #### sampling space ####
-    height, width, nc = img_shape
     bbox_h, bbox_w, bbox_c = bbox
     ### left top ###
-    '''
-    search_x_left, search_y_left, search_x_right, search_y_right = width * 0.55 , height * 0.5 , \
-                                                                   width * 0.9 , height * 0.95
-    '''
+    # 随机生成位置的范围
     search_x_left, search_y_left, search_x_right, search_y_right = width * 0.35 , height * 0.6 , \
                                                                    width * 1 , height * 0.95
 
     return [search_x_left, search_y_left, search_x_right, search_y_right]
 
 
-def random_add_patches2(bbox_img, rescale_boxes, shape, paste_number, iou_thresh):
+def random_add_patches(bbox_img, rescale_boxes, shape, paste_number, iou_thresh):
     temp = []
     for rescale_bbox in rescale_boxes:
         temp.append(rescale_bbox)
     bbox_h, bbox_w, bbox_c = bbox_img
     img_h,img_w,img_c = shape
-    center_search_space = sampling_new_bbox_center_point2(shape, bbox_img)  # 选取生成随机点区域
+    center_search_space = sampling_new_bbox_center_point(shape, bbox_img)  # 选取生成随机点区域
     success_num = 0
     new_bboxes = []
     cl = 1
