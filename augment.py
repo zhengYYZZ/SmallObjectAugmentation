@@ -62,6 +62,7 @@ def synthetic_img(bg_img_path, bg_label_path, bg_roi_points, fg_img_path, num=1)
             try:
                 if count > 1:
                     fg_img = flip_bbox(fg_img)
+                # 泊松融合
                 bg_img[bbox_top:bbox_bottom, bbox_left:bbox_right] = cv2.seamlessClone(fg_img,
                                                                                        bg_img[bbox_top:bbox_bottom,
                                                                                        bbox_left:bbox_right],
