@@ -39,8 +39,8 @@ def set_path(bg='train.txt', fg='small.txt', save_path='save'):
 if __name__ == '__main__':
     save_dir, bg_img_dir, bg_label_dir, fg_img_dir = set_path()
     box = draw_background_roi(bg_img_dir)
-    for bb in tqdm(box):
-        img, label = aug.synthetic_img(bb[0], bg_label_dir[0], bb[1], fg_img_dir, num=5)
+    for bb,bg_label in tqdm(zip(box,bg_label_dir)):
+        img, label = aug.synthetic_img(bb[0], bg_label, bb[1], fg_img_dir, num=5)
         yolo_txt_name = os.path.join(save_dir, os.path.basename(bb[0].replace('.jpg', '_augment.txt')))
         img_file_name = os.path.join(save_dir, os.path.basename(bb[0].replace('.jpg', '_augment.jpg')))
         cv2.imwrite(img_file_name, img)
