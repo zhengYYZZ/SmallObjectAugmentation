@@ -1,10 +1,16 @@
 import os
-import cv2
 import numpy as np
 import random
+import Helpers as hp
 
 
 def convert(size, box):
+    """
+    坐标转换为yolo需要的格式
+    :param size: 图片尺寸
+    :param box: 坐标点
+    :return:
+    """
     dw = 1. / (size[0])
     dh = 1. / (size[1])
     x = (box[0] + box[1]) / 2.0 - 1
@@ -18,14 +24,12 @@ def convert(size, box):
     return x, y, w, h
 
 
-def issmallobject(bbox, thresh):
-    if bbox[0] * bbox[1] <= thresh:
-        return True
-    else:
-        return False
-
-
 def read_label_txt(label_dir):
+    """
+    读取标签文件
+    :param label_dir: 标签文件txt
+    :return: label(shape(*,5))
+    """
     labels = []
     with open(label_dir) as fp:
         for f in fp.readlines():
@@ -33,24 +37,23 @@ def read_label_txt(label_dir):
     return labels
 
 
-def load_txt_label(label_dir):
-    return np.loadtxt(label_dir, dtype=str)
-
-
-def load_txt_labels(label_dir):
-    labels = []
-    for l in label_dir:
-        la = load_txt_label(l)
-        labels.append(la)
-    return labels
-
-
 def check_dir(dir):
+    """
+    创建文件夹
+    :param dir: 文件夹名
+    :return: None
+    """
     if not os.path.exists(dir):
         os.makedirs(dir)
 
 
 def rescale_yolo_labels(labels, img_shape):
+    """
+    将yolo表示的坐标转换为普通坐标表示
+    :param labels: yolo坐标
+    :param img_shape: 图像shape
+    :return: 普通坐标
+    """
     height, width, nchannel = img_shape
     rescale_boxes = []
     for box in list(labels):
@@ -66,16 +69,15 @@ def rescale_yolo_labels(labels, img_shape):
     return rescale_boxes
 
 
-def draw_annotation_to_image(img, annotation, save_img_dir):
-    for anno in annotation:
-        cl, x1, y1, x2, y2 = anno
-        cv2.rectangle(img, pt1=(x1, y1), pt2=(x2, y2), color=(255, 0, 0))
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(img, cl, (int((x1 + x2) / 2), y1 - 5), font, fontScale=0.8, color=(0, 0, 255))
-    cv2.imwrite(save_img_dir, img)
-
-
 def bbox_iou(box1, box2):
+    """
+    两个方形区域的相交系数,
+    相交面积小-->相交面积大
+           0 --> 1
+    :param box1:方形区域1
+    :param box2:方形区域1
+    :return:相交系数
+    """
     cl, b1_x1, b1_y1, b1_x2, b1_y2 = box1
     cl, b2_x1, b2_y1, b2_x2, b2_y2 = box2
     # get the corrdinates of the intersection rectangle
@@ -97,70 +99,89 @@ def bbox_iou(box1, box2):
     return iou
 
 
-def swap(x1, x2):
-    if (x1 > x2):
-        temp = x1
-        x1 = x2
-        x2 = temp
-    return x1, x2
-
-
 def norm_sampling(search_space):
-    # 随机生成点
+    """
+    随机生成坐标点
+    :param search_space: 生成点范围
+    :return: 坐标[x,y]
+    """
     search_x_left, search_y_left, search_x_right, search_y_right = search_space
+    # print(search_space)
+    # print(search_y_left,search_y_right)
     new_bbox_x_center = random.randint(search_x_left, search_x_right)
     new_bbox_y_center = random.randint(search_y_left, search_y_right)
     return [new_bbox_x_center, new_bbox_y_center]
 
 
-def flip_bbox(roi):
-    roi = roi[:, ::-1, :]
-    return roi
+def roi_box(points):
+    # 四边形外接矩形
+    x_left, y_left, x_right, y_right = points[0][0], points[0][1], 0, 0
+    for p in points:
+        if x_left > int(p[0]):
+            x_left = p[0]
+        if x_right < p[0]:
+            x_right = p[0]
+        if y_left > p[1]:
+            y_left = p[1]
+        if y_right < p[1]:
+            y_right = p[1]
+    return x_left, y_left, x_right, y_right
 
 
-def sampling_new_bbox_center_point(img_shape, bbox):
-    #### sampling space ####
-    height, width, nc = img_shape
-    bbox_h, bbox_w, bbox_c = bbox
-    ### left top ###
-    # 随机生成位置的范围
-    search_x_left, search_y_left, search_x_right, search_y_right = width * 0.35 , height * 0.6 , \
-                                                                   width * 1 , height * 0.95
-
-    return [search_x_left, search_y_left, search_x_right, search_y_right]
-
-
-def random_add_patches(bbox_img, rescale_boxes, shape, paste_number, iou_thresh):
-    temp = []
-    for rescale_bbox in rescale_boxes:
-        temp.append(rescale_bbox)
-    bbox_h, bbox_w, bbox_c = bbox_img
-    img_h,img_w,img_c = shape
-    center_search_space = sampling_new_bbox_center_point(shape, bbox_img)  # 选取生成随机点区域
+def random_add_patches(fg_img_shape, bg_labels, bg_img_shape, roi_points, cl=1, paste_number=1, iou_thresh=0):
+    """
+    随机生成预选框
+    :param fg_img_shape:前景图shape
+    :param bg_labels: 背景图标签
+    :param bg_img_shape: 背景图shape
+    :param roi_points: 背景图选框
+    :param paste_number: 合成数目
+    :param iou_thresh: 两个方框相交面积参数
+    :return:
+    """
+    fg_img_h, fg_img_w, fg_img_c = fg_img_shape
+    bg_img_h, bg_img_w, bg_img_c = bg_img_shape
+    roi_rect = roi_box(roi_points.reshape(-1, 2).tolist())
     success_num = 0
+    count = 0
     new_bboxes = []
-    cl = 1
+
     while success_num < paste_number:
-        new_bbox_x_center, new_bbox_y_center = norm_sampling(center_search_space)   # 随机生成点坐标
-        if new_bbox_x_center-0.5*bbox_w < 0 or new_bbox_x_center+0.5*bbox_w > img_w:
+        if count == 10:
+            break
+
+        new_bbox_x_center, new_bbox_y_center = norm_sampling(roi_rect)
+        # 越界检查
+        if new_bbox_x_center - 0.5 * fg_img_w < 0 or new_bbox_x_center + 0.5 * fg_img_w > bg_img_w:
             continue
-        if new_bbox_y_center-0.5*bbox_h < 0 or new_bbox_y_center+0.5*bbox_h > img_h:
+        if new_bbox_y_center - 0.5 * fg_img_h < 0 or new_bbox_y_center + 0.5 * fg_img_h > bg_img_h:
             continue
-        new_bbox_x_left, new_bbox_y_left, new_bbox_x_right, new_bbox_y_right = new_bbox_x_center - 0.5 * bbox_w, \
-                                                                               new_bbox_y_center - 0.5 * bbox_h, \
-                                                                               new_bbox_x_center + 0.5 * bbox_w, \
-                                                                               new_bbox_y_center + 0.5 * bbox_h
+        if hp.point_in_roi(roi_points, (new_bbox_x_center, new_bbox_y_center)) != 1:
+            continue
+
+        new_bbox_x_left, new_bbox_y_left, new_bbox_x_right, new_bbox_y_right = new_bbox_x_center - 0.5 * fg_img_w, \
+                                                                               new_bbox_y_center - 0.5 * fg_img_h, \
+                                                                               new_bbox_x_center + 0.5 * fg_img_w, \
+                                                                               new_bbox_y_center + 0.5 * fg_img_h
         new_bbox = [cl, int(new_bbox_x_left), int(new_bbox_y_left), int(new_bbox_x_right), int(new_bbox_y_right)]
 
-        ious = [bbox_iou(new_bbox, bbox_t) for bbox_t in rescale_boxes]
-        ious2 = [bbox_iou(new_bbox,bbox_t1) for bbox_t1 in new_bboxes]
-        if ious2 == []:
-            ious2.append(0)
-        if max(ious) <= iou_thresh and max(ious2) <= iou_thresh:
-            success_num += 1
-            temp.append(new_bbox)
+        ious_bg = [bbox_iou(new_bbox,bbox_bg) for bbox_bg in bg_labels]
+        ious_fg = [bbox_iou(new_bbox,bbox_fg) for bbox_fg in new_bboxes]
+        if ious_fg == []:
+            ious_fg.append(0)
+        if ious_bg == []:
+            ious_bg.append(0)
+
+        if max(ious_bg) <= iou_thresh and max(ious_fg) <= iou_thresh:
+            success_num +=1
             new_bboxes.append(new_bbox)
         else:
+            count += 1
             continue
 
     return new_bboxes
+
+
+if __name__ == "__main__":
+    test = [[532, 306], [1432, 292], [836, 868], [204, 664]]
+    print(roi_box(test) == (204, 868, 1432, 292))
