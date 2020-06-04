@@ -3,6 +3,7 @@ import os
 import util
 import cv2
 import augment as aug
+from tqdm import tqdm
 
 
 def draw_background_roi(path_list):
@@ -38,7 +39,7 @@ def set_path(bg='train.txt', fg='small.txt', save_path='save'):
 if __name__ == '__main__':
     save_dir, bg_img_dir, bg_label_dir, fg_img_dir = set_path()
     box = draw_background_roi(bg_img_dir)
-    for bb in box:
+    for bb in tqdm(box):
         img, label = aug.synthetic_img(bb[0], bg_label_dir[0], bb[1], fg_img_dir, num=5)
         yolo_txt_name = os.path.join(save_dir, os.path.basename(bb[0].replace('.jpg', '_augment.txt')))
         img_file_name = os.path.join(save_dir, os.path.basename(bb[0].replace('.jpg', '_augment.jpg')))
