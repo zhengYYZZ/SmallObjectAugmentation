@@ -9,6 +9,28 @@ def flip_bbox(roi):
     return roi
 
 
+def add_noise_single_channel(single):
+    """
+    高斯噪声
+    :param single:
+    :return:
+    """
+    diff = 255 - single.max()
+    noise = np.random.normal(0, 1 + hp.r(6), single.shape)
+    noise = (noise - noise.min()) / (noise.max() - noise.min())
+    noise = diff * noise
+    noise = noise.astype(np.uint8)
+    dst = single + noise
+    return dst
+
+
+def add_noise(img, sdev=0.5, avg=10):
+    img[:, :, 0] = add_noise_single_channel(img[:, :, 0])
+    img[:, :, 1] = add_noise_single_channel(img[:, :, 1])
+    img[:, :, 2] = add_noise_single_channel(img[:, :, 2])
+    return img
+
+
 def save_label_txt(img_shape, img_label, save_file):
     """
     将标签信息转换为yolo格式,并保存
@@ -49,6 +71,7 @@ def synthetic_img(bg_img_path, bg_label_path, bg_roi_points, fg_img_path, num=1)
         fg_img = cv2.imread(fg_file)
         fg_img = hp.img_resize(fg_img, 3000, 2000)
         fg_img = hp.gaussian_blurImg(fg_img)
+        fg_img = add_noise(fg_img)
 
         new_bboxes = util.random_add_patches(fg_img.shape, bg_label, bg_img.shape, bg_roi_points, cl=1)
 

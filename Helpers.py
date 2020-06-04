@@ -63,8 +63,8 @@ def rand_list(list_dir):
     :param list_dir:
     :return:
     """
-    list_len = len(list_dir)-1
-    ran = random.randint(0,list_len)
+    list_len = len(list_dir) - 1
+    ran = random.randint(0, list_len)
     return list_dir[ran]
 
 
@@ -79,15 +79,15 @@ def img_resize(image, area_max=2000, area_min=1000):
 
     height, width, channels = image.shape
 
-    while (height*width) > area_max:
-        image = cv2.resize(image, (int(width * 0.9),int(height * 0.9)))
+    while (height * width) > area_max:
+        image = cv2.resize(image, (int(width * 0.9), int(height * 0.9)))
         height, width, channels = image.shape
-        height,width = int(height*0.9),int(width*0.9)
+        height, width = int(height * 0.9), int(width * 0.9)
 
-    while (height*width) < area_min:
-        image = cv2.resize(image, (int(width * 1.1),int(height * 1.1)))
+    while (height * width) < area_min:
+        image = cv2.resize(image, (int(width * 1.1), int(height * 1.1)))
         height, width, channels = image.shape
-        height,width = int(height*1.1),int(width*1.1)
+        height, width = int(height * 1.1), int(width * 1.1)
 
     return image
 
@@ -100,3 +100,12 @@ def gaussian_blurImg(image):
     else:
         pass
     return image
+
+
+def r(val):
+    """
+    生成0~val范围的随机数
+    :param val:
+    :return:
+    """
+    return int(np.random.random() * val)
