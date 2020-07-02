@@ -94,7 +94,7 @@ def img_resize(image, area_max=2000, area_min=1000):
 
 def gaussian_blurImg(image):
     # 高斯模糊
-    ran = random.randint(0, 9)
+    ran = random.randint(0, 5)
     if ran % 2 == 1:
         image = cv2.GaussianBlur(image, ksize=(ran, ran), sigmaX=0, sigmaY=0)
     else:
@@ -109,3 +109,4 @@ def r(val):
     :return:
     """
     return int(np.random.random() * val)
+

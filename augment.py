@@ -69,11 +69,11 @@ def synthetic_img(bg_img_path, bg_label_path, bg_roi_points, fg_img_path, num=1)
     for i in range(num):
         fg_file = hp.rand_list(fg_img_path)
         fg_img = cv2.imread(fg_file)
-        fg_img = hp.img_resize(fg_img, 3000, 2000)
+        fg_img = hp.img_resize(fg_img, 3000, 1800)
         fg_img = hp.gaussian_blurImg(fg_img)
-        fg_img = add_noise(fg_img)
+        # fg_img = add_noise(fg_img)
 
-        new_bboxes = util.random_add_patches(fg_img.shape, bg_label, bg_img.shape, bg_roi_points, cl=1)
+        new_bboxes = util.random_add_patches(fg_img.shape, all_boxes, bg_img.shape, bg_roi_points, cl=2,iou_thresh=0)
 
         for count, new_bbox in enumerate(new_bboxes):
             cl, bbox_left, bbox_top, bbox_right, bbox_bottom = new_bbox[0], new_bbox[1], new_bbox[2], new_bbox[3], \
@@ -95,3 +95,4 @@ def synthetic_img(bg_img_path, bg_label_path, bg_roi_points, fg_img_path, num=1)
                 print("valueError")
                 continue
     return bg_img, all_boxes
+

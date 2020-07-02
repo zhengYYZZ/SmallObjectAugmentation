@@ -171,7 +171,6 @@ def random_add_patches(fg_img_shape, bg_labels, bg_img_shape, roi_points, cl=1, 
             ious_fg.append(0)
         if ious_bg == []:
             ious_bg.append(0)
-
         if max(ious_bg) <= iou_thresh and max(ious_fg) <= iou_thresh:
             success_num +=1
             new_bboxes.append(new_bbox)
