@@ -5,7 +5,7 @@ Simple python implementation of Augmentation for small object detection, as desc
 ![img2](./figs/2018-11-03_07_45_09_1_augment.jpg)
 
 ---
-**Increased the choice of regions**
+**Increased the choice of regions**  
 ![!!!](./img/2020-07-19.gif)
 
 
