@@ -6,7 +6,7 @@ Simple python implementation of Augmentation for small object detection, as desc
 
 ---
 **Increased the choice of regions**
-![](./img/2020-07-19.gif)
+![!!!](./img/2020-07-19.gif)
 
 
 ## Usage
